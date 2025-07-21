@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>ESP32 MQTT 实时监控</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+    .data-box { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>ESP32 实时数据监控</h1>
+  <div id="data"></div>
+
+  <!-- 引入 Paho-MQTT.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt-min.js"></script>
+  <script>
+    // MQTT Broker 配置
+    const host = "139.224.211.170";
+    const port = 9001;
+    const clientId = "web_client_" + Math.random().toString(16).substr(2, 8);
+    const topic = "esp32/#";
+
+    // 创建 MQTT 客户端
+    const client = new Paho.MQTT.Client(host, port, clientId);
+
+    // 连接成功回调
+    client.onConnectionLost = function (responseObject) {
+      console.log("连接断开:", responseObject.errorMessage);
+    };
+
+    // 接收到消息回调
+    client.onMessageArrived = function (message) {
+      console.log("收到消息:", message.destinationName, ":", message.payloadString);
+
+      const container = document.getElementById("data");
+      const box = document.createElement("div");
+      box.className = "data-box";
+
+      if (message.destinationName === "esp32/sysinfo") {
+        try {
+          const info = JSON.parse(message.payloadString);
+          box.innerHTML = `
+            <strong>系统信息</strong><br>
+            芯片型号: ${info.chip}<br>
+            MicroPython 版本: ${info.micropython_version}<br>
+            内存使用: ${info.mem_alloc} / ${info.mem_total} bytes<br>
+            Wi-Fi: ${info.wifi_ssid}<br>
+            IP 地址: ${info.ip_address}
+          `;
+        } catch (e) {
+          box.innerHTML = `<strong>原始 sysinfo 消息:</strong> ${message.payloadString}`;
+        }
+      } else if (message.destinationName === "esp32/test") {
+        box.innerHTML = `<strong>普通消息:</strong> ${message.payloadString}`;
+      } else {
+        box.innerHTML = `<strong>未知主题 [${message.destinationName}]</strong>: ${message.payloadString}`;
+      }
+
+      container.prepend(box);
+    };
+
+    // 连接 MQTT Broker
+    client.connect({
+      onSuccess: () => {
+        console.log("MQTT 连接成功");
+        client.subscribe(topic);
+        console.log("已订阅主题:", topic);
+      },
+      onFailure: (e) => {
+        console.error("MQTT 连接失败:", e);
+      }
+    });
+  </script>
+</body>
+</html>
