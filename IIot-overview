@@ -16,7 +16,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt-min.js"></script>
   <script>
     // MQTT Broker 配置
-    const host = "139.224.211.170";
+    const host = "";
     const port = 9001;
     const clientId = "web_client_" + Math.random().toString(16).substr(2, 8);
     const topic = "esp32/#";
